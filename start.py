@@ -1,0 +1,1 @@
+from migubot import bot

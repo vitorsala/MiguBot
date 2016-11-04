@@ -1,17 +1,18 @@
-from commands import *
-from util import YTQueue
+from .commands_base import CMD_INDEXER
+from .commands_base import commandList
+from .commands_base import adminCommandList
+from .commands import *
 import discord
-import util
-import commands
 import sys
 import logging
 import asyncio
 import time
 import json
 
-with open('auth.json') as data_file:
+client = discord.Client()
+auth = None
+with open('config/auth.json') as data_file:
     auth = json.load(data_file)
-
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -23,11 +24,11 @@ handler.setFormatter(
     logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
 )
 logger.addHandler(handler)
-consoleLoop = asyncio.new_event_loop()
-client = discord.Client()
+
 cmdPrefix = '$'
 
-threads = []
+if not discord.opus.is_loaded():
+    discord.opus.load_opus('opus')
 
 
 @client.event
@@ -55,20 +56,42 @@ async def on_message(message: discord.Message) -> None:
         args = None
 
     if cmd in commandList:
-        await commandList[cmd].function(client, message, args)
+        # Verifica se o comando veio com um sub-comando
+        subcmds = commandList[cmd][CMD_INDEXER.SUBCOMMANDS]
+        if args is not None and args[0] in subcmds:
+            if (len(content) > 1):
+                args = content[1:]
+            else:
+                args = None
+            subcmds[CMD_INDEXER.FUNCTION](client, message, args)
+        else:
+            await commandList[cmd][CMD_INDEXER.FUNCTION](client, message, args)
+
     elif (
         cmd in adminCommandList and
         message.server is not None and
         message.server.id == auth['consoleServer']
     ):
-        await adminCommandList[cmd].function(client, message, args)
+        subcmds = adminCommandList[cmd][CMD_INDEXER.SUBCOMMANDS]
+        if args is not None and args[0] in subcmds:
+            if (len(content) > 1):
+                args = content[1:]
+            else:
+                args = None
+            subcmds[CMD_INDEXER.FUNCTION](client, message, args)
+        else:
+            await adminCommandList[cmd][CMD_INDEXER.FUNCTION](
+                client,
+                message,
+                args
+            )
     else:
         await client.send_message(message.channel, 'Comando não encontrado')
 
 
 @client.event
 async def on_ready():
-    util.ytQueue = YTQueue(client)
+
     await client.change_presence(game=discord.Game(name=auth['state']))
     print('Logged in as')
     print(client.user.name)
@@ -76,26 +99,5 @@ async def on_ready():
     for server in client.servers:
         print(server.name)
     print('------')
-
-
-# async def console():
-#     await client.wait_until_ready()
-#     while not client.is_closed:
-#         ctx = input('MiguBot > ').split(' ')
-#         cmd = ctx[0]
-#         if len(ctx) > 1:
-#             args = ctx[1:]
-#         else:
-#             args = None
-#         if cmd in adminCommandList:
-#             adminCommandList[cmd](client, None, args)
-
-if not discord.opus.is_loaded():
-    # the 'opus' library here is opus.dll on windows
-    # or libopus.so on linux in the current directory
-    # you should replace this with the location the
-    # opus library is located in and with the proper filename.
-    # note that on windows this DLL is automatically provided for you
-    discord.opus.load_opus('opus')
 
 client.run(auth['discordToken'])
