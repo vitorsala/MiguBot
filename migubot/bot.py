@@ -15,6 +15,7 @@ with open('config/auth.json') as data_file:
     auth = json.load(data_file)
 
 logger = logging.getLogger('discord')
+assert isinstance(logger, logging.Logger)
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(
     filename='discord.log',
@@ -101,3 +102,8 @@ async def on_ready():
     print('------')
 
 client.run(auth['discordToken'])
+
+# Clean
+logger.removeHandler(handler)
+logger = None
+client = None
