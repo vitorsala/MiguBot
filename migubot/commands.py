@@ -94,6 +94,10 @@ async def stop(client: discord.Client, context: discord.Message, args):
 @Command(about='Desliga o Bot', adminOnly=True)
 async def shutdown(client: discord.Client, context: discord.Message, args):
     await client.close()
+    
+@Command(about='BATATA!')
+async def batata(client: discord.Client, context: discord.Message, args):
+    await client.send_message(context.channel, 'http://i.imgur.com/jzYecG5.jpg')
 
 # "$ping - Verifica se eu estou recebendo comandos.  :)\n"
 # "$gg - GG!\n"+
