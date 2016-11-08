@@ -102,6 +102,11 @@ async def stop(client: discord.Client, context: discord.Message, args):
     await pl.stop()
     await vClient.disconnect()
 
+
+@Command(about='BATATA!')
+async def batata(client: discord.Client, context: discord.Message, args):
+    await client.send_message(context.channel,
+                              'http://i.imgur.com/jzYecG5.jpg')
 # Admin commands
 
 
