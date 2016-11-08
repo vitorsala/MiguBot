@@ -2,6 +2,10 @@ from .commands_base import CMD_INDEXER
 from .commands_base import commandList
 from .commands_base import adminCommandList
 from .commands import *
+from .playlist import PlayList
+from .playlist import serverPlaylists
+from .playlist import playListTask
+import random
 import discord
 import sys
 import logging
@@ -27,6 +31,7 @@ handler.setFormatter(
 logger.addHandler(handler)
 
 cmdPrefix = '$'
+heat = 0
 
 if not discord.opus.is_loaded():
     discord.opus.load_opus('opus')
@@ -34,19 +39,36 @@ if not discord.opus.is_loaded():
 
 @client.event
 async def on_message(message: discord.Message) -> None:
+    global heat
     if message.author == client.user:
         return
+
+    # Meme area
+    if message.content == '(╯°□°）╯︵ ┻━┻':
+        heat += 0.1
+        eg = (random.random() * heat >= 0.9)
+        str = ''
+        if not eg:
+            str += '┬─┬ノ(° -°ノ)'
+        else:
+            heat = 0
+            str += 'ノ┬─┬ノ ︵ ( \\o°o)\\'
+        await client.send_message(message.channel, str)
+        return
+    else:
+        heat = 0
+    # the end
 
     content = message.content.strip()
     if content[0] != cmdPrefix:
         return
 
-    if message.server is None or message.server.id != auth['consoleServer']:
-        await client.send_message(
-            message.channel,
-            '(ง •̀\_•́)ง Em breve, serei um bot funcional! (ง •̀\_•́)ง'
-        )
-        return
+    # if message.server is None or message.server.id != auth['consoleServer']:
+    #     await client.send_message(
+    #         message.channel,
+    #         '(ง •̀\_•́)ง Em breve, serei um bot funcional! (ง •̀\_•́)ง'
+    #     )
+    #     return
 
     content = content[1:].split(' ')
     cmd = content[0]
@@ -60,11 +82,12 @@ async def on_message(message: discord.Message) -> None:
         # Verifica se o comando veio com um sub-comando
         subcmds = commandList[cmd][CMD_INDEXER.SUBCOMMANDS]
         if args is not None and args[0] in subcmds:
-            if (len(content) > 1):
-                args = content[1:]
+            f = args[0]
+            if (len(args) > 1):
+                args = args[1:]
             else:
                 args = None
-            subcmds[CMD_INDEXER.FUNCTION](client, message, args)
+            await subcmds[f][CMD_INDEXER.FUNCTION](client, message, args)
         else:
             await commandList[cmd][CMD_INDEXER.FUNCTION](client, message, args)
 
@@ -75,11 +98,12 @@ async def on_message(message: discord.Message) -> None:
     ):
         subcmds = adminCommandList[cmd][CMD_INDEXER.SUBCOMMANDS]
         if args is not None and args[0] in subcmds:
-            if (len(content) > 1):
-                args = content[1:]
+            f = args[0]
+            if (len(args) > 1):
+                args = args[1:]
             else:
                 args = None
-            subcmds[CMD_INDEXER.FUNCTION](client, message, args)
+            await subcmds[f][CMD_INDEXER.FUNCTION](client, message, args)
         else:
             await adminCommandList[cmd][CMD_INDEXER.FUNCTION](
                 client,
@@ -92,15 +116,17 @@ async def on_message(message: discord.Message) -> None:
 
 @client.event
 async def on_ready():
-
     await client.change_presence(game=discord.Game(name=auth['state']))
     print('Logged in as')
     print(client.user.name)
     print('\nConnected to servers:')
     for server in client.servers:
+        serverPlaylists[server.id] = PlayList(server)
         print(server.name)
     print('------')
 
+
+client.loop.create_task(playListTask(client))
 client.run(auth['discordToken'])
 
 # Clean

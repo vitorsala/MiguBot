@@ -1,6 +1,5 @@
 from copy import deepcopy
 import discord
-import asyncio
 
 
 class Queue:
@@ -14,18 +13,32 @@ class Queue:
         self.queue.append(element)
 
     def dequeue(self):
+        if self.size() == 0:
+            return None
         r = self.queue[0]
-        del r[0]
+        del self.queue[0]
         return r
 
     def peek(self):
+        if self.size() == 0:
+            return None
         return self.queue[0]
 
     def getList(self):
         return deepcopy(self.queue)
 
     def removeFromIndex(self, index):
-        del self.queue[index]
+        if index < self.size():
+            del self.queue[index]
+
+    def clear(self):
+        self.queue = []
+
+    def size(self):
+        return len(self.queue)
+
+    def isEmpty(self):
+        return self.size() == 0
 
 
 class VChannelResponse:
@@ -60,32 +73,3 @@ def checkVChannel(client: discord.Client,
                 return VChannelResponse.BOT_IN_USE
     else:
         return VChannelResponse.USER_NOT_IN_CHANNEL
-
-
-def ytPlayerCallBack(client: discord.Client, server: discord.Server, player):
-    serverId = server.id
-    if serverId in player.keys() and player[serverId] is not None:
-        player[serverId] = None
-
-    vClient = client.voice_client_in(server)
-    fut = asyncio.run_coroutine_threadsafe(vClient.disconnect(), client.loop)
-    try:
-        fut.result()
-    except:
-        pass
-
-
-async def play(client, link, player, vChannel, channel, server):
-    serverId = server.id
-    try:
-        msg = await client.send_message(channel, "`Preparando...`")
-        player[serverId] = await vChannel.create_ytdl_player(
-            link,
-            after=lambda: ytPlayerCallBack(client, server)
-        )
-        player[serverId].start()
-        await  client.edit_message(msg, "`Pronto!`")
-    except BaseException as e:
-        # Fazer o tratamento das execeções
-        print(e)
-    return

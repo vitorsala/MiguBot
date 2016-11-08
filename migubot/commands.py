@@ -4,16 +4,13 @@ from .commands_base import SubCommand
 from .commands_base import CMD_INDEXER
 from .utils import checkVChannel
 from .utils import VChannelResponse
-from .utils import play
+from .playlist import serverPlaylists
 import discord
-
-cmdPrefix = '$'
-player = {}
 
 
 @Command()
 async def help(client: discord.Client, context: discord.Message, args):
-    str = ''
+    str = '```\n'
     for cmd in commandList:
         if cmd != 'help':
             about = commandList[cmd][CMD_INDEXER.ABOUT]
@@ -25,6 +22,7 @@ async def help(client: discord.Client, context: discord.Message, args):
                     about = item[CMD_INDEXER.ABOUT]
                     if about is not None:
                         str += '$' + cmd + ' ' + subcmd + ': ' + about + '\n'
+    str += '```'
     await client.send_message(context.channel, str)
 
 
@@ -37,55 +35,71 @@ async def ping(client: discord.Client, context: discord.Message, args):
 async def yt(client: discord.Client, context: discord.Message, args):
     # end of sub commands definitions
     serverId = context.server.id
-    if args is None:
-        if serverId in player.keys():
-            if player[serverId].is_playing():
-                str = 'Música atual: '
-                str += player[serverId].title
-            else:
-                str = 'Não estou tocando nada no momento.'
-        else:
-            str = 'Não estou tocando nada no momento.'
-        await client.send_message(context.channel, str)
-        return
+    pl = serverPlaylists[serverId]
+    if pl.player is not None and pl.player.is_playing():
+        str = 'Música atual: '
+        str += pl.player.title
     else:
-        if isinstance(context.channel, discord.Channel):
-            member = context.author
-            vChannel = member.voice.voice_channel
-            check = checkVChannel(client, member, context.server)
-            if check == VChannelResponse.BOT_NEED_CONNECT:
-                vClient = await client.join_voice_channel(vChannel)
-                await play(client, args[0], player, vClient, context.channel,
-                           context.server)
-            elif check == VChannelResponse.BOT_READY:
-                await play(client, args[0], player, vChannel, context.channel,
-                           context.server)
-            elif check == VChannelResponse.BOT_IN_USE:
-                await client.send_message(
-                    context.channel,
-                    "No momento, estou tocando música em outro canal!"
-                )
-            elif check == VChannelResponse.USER_NOT_IN_CHANNEL:
-                await client.send_message(
-                    context.channel,
-                    "Você precisa estar em um canal de \
-                    voz para usar este comando."
-                )
+        str = 'Não estou tocando nada no momento.'
+    await client.send_message(context.channel, str)
+    return
 
 
-@SubCommand(parent='yt', about='test')
+@SubCommand(parent='yt', about='Toca a música dado um link do youtube')
+async def play(client: discord.Client, context: discord.Message, args):
+    if isinstance(context.channel, discord.Channel) and args is not None:
+        serverId = context.server.id
+        member = context.author
+        vChannel = member.voice.voice_channel
+        check = checkVChannel(client, member, context.server)
+        pl = serverPlaylists[serverId]
+        if check == VChannelResponse.BOT_NEED_CONNECT:
+            vChannel = await client.join_voice_channel(vChannel)
+            await pl.play(client, args[0],
+                          vChannel, context.channel)
+        elif check == VChannelResponse.BOT_READY:
+            await pl.play(client, args[0],
+                          vChannel, context.channel)
+        elif check == VChannelResponse.BOT_IN_USE:
+            await client.send_message(
+                context.channel,
+                "No momento, estou tocando música em outro canal!"
+            )
+        elif check == VChannelResponse.USER_NOT_IN_CHANNEL:
+            await client.send_message(
+                context.channel,
+                "Você precisa estar em um canal de \
+                voz para usar este comando."
+            )
+
+
+@SubCommand(parent='yt', about='Adiciona uma música na fila')
 async def add(client: discord.Client, context: discord.Message, args):
-    pass
+    if args is not None:
+        serverId = context.server.id
+        pl = serverPlaylists[serverId]
+        if pl.player is None:
+            await client.send_message(
+                context.channel,
+                "Não há nenhuma playlist ativa, use `$yt play <link>` para iniciar uma nova."
+            )
+            return
+        else:
+            serverId = context.server.id
+            pl = serverPlaylists[serverId]
+            pl.addMusic(args[0])
+            await client.send_message(
+                context.channel,
+                "Link adicionado na fila."
+            )
 
 
 @Command(about='Faz parar tudo!')
 async def stop(client: discord.Client, context: discord.Message, args):
     serverId = context.server.id
-    if serverId in player.keys() and player[serverId] is None:
-        player[serverId].stop()
-        player[serverId] = None
-
+    pl = serverPlaylists[serverId]
     vClient = client.voice_client_in(context.server)
+    await pl.stop()
     await vClient.disconnect()
 
 # Admin commands
@@ -94,15 +108,3 @@ async def stop(client: discord.Client, context: discord.Message, args):
 @Command(about='Desliga o Bot', adminOnly=True)
 async def shutdown(client: discord.Client, context: discord.Message, args):
     await client.close()
-
-# "$ping - Verifica se eu estou recebendo comandos.  :)\n"
-# "$gg - GG!\n"+
-# "$yt [link] - toca o áudio de um link do youtube,
-# interropendo qualquer execução.\n"
-# "$ytq - Mostra o que está tocando.\n"+
-# "$ytq [link] - Enfilera a música na playlist atual, caso não tenha nenhuma
-# playlist, inicia uma.\n"
-# "$ytq list - Mostra o que está tocando, e as músicas enfilerada.\n"
-# "$ytq next - Pula para a próxima música da lista.\n"
-# "$ytq remove [index] - Remove a música do indice informado.\n"
-# "$stop - Para de tocar tudo.
