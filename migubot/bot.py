@@ -20,7 +20,7 @@ with open('config/auth.json') as data_file:
 
 logger = logging.getLogger('discord')
 assert isinstance(logger, logging.Logger)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 handler = logging.FileHandler(
     filename='discord.log',
     encoding='utf-8', mode='w'

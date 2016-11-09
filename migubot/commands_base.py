@@ -7,15 +7,17 @@ class CMD_INDEXER:
     FUNCTION = 0
     ABOUT = 1
     SUBCOMMANDS = 2
+    ARGS = 3
 
 
 class Command:
-    def __init__(self, about='', adminOnly=False):
+    def __init__(self, args=None, about=None, adminOnly=False):
+        self.args = args
         self.about = about
         self.adminOnly = adminOnly
 
     def __call__(self, f):
-        registerCommand(f.__name__, self.about, self.adminOnly, f)
+        registerCommand(f.__name__, self.args, self.about, self.adminOnly, f)
 
         def wrapper(client, context, args):
             f(client, context, args)
@@ -23,8 +25,9 @@ class Command:
 
 
 class SubCommand:
-    def __init__(self, parent, about, adminOnly=False):
+    def __init__(self, parent, args=None, about=None, adminOnly=False):
         self.parent = parent
+        self.args = args
         self.about = about
         self.adminOnly = adminOnly
 
@@ -32,6 +35,7 @@ class SubCommand:
         registerSubCommand(
             self.parent,
             f.__name__,
+            self.args,
             self.about,
             self.adminOnly,
             f
@@ -42,7 +46,7 @@ class SubCommand:
         return wrapper
 
 
-def registerCommand(cmd, about=None, admin=True, func=None):
+def registerCommand(cmd, args=None, about=None, admin=True, func=None):
     cmdlist = {}
     if admin is True:
         cmdlist = adminCommandList
@@ -53,10 +57,12 @@ def registerCommand(cmd, about=None, admin=True, func=None):
         cmdlist[cmd] = {}
         cmdlist[cmd][CMD_INDEXER.SUBCOMMANDS] = {}
     cmdlist[cmd][CMD_INDEXER.FUNCTION] = func
+    cmdlist[cmd][CMD_INDEXER.ARGS] = args
     cmdlist[cmd][CMD_INDEXER.ABOUT] = about
 
 
-def registerSubCommand(parentCmd, cmd, about=None, admin=True, func=None):
+def registerSubCommand(parentCmd, cmd, args=None, about=None,
+                       admin=True, func=None):
     cmdlist = {}
     if admin is True:
         cmdlist = adminCommandList
@@ -66,7 +72,9 @@ def registerSubCommand(parentCmd, cmd, about=None, admin=True, func=None):
         cmdlist[parentCmd] = {}
         cmdlist[parentCmd][CMD_INDEXER.FUNCTION] = None
         cmdlist[parentCmd][CMD_INDEXER.ABOUT] = None
+        cmdlist[parentCmd][CMD_INDEXER.ARGS] = None
     subcmd = {}
     subcmd[CMD_INDEXER.FUNCTION] = func
     subcmd[CMD_INDEXER.ABOUT] = about
+    subcmd[CMD_INDEXER.ARGS] = args
     cmdlist[parentCmd][CMD_INDEXER.SUBCOMMANDS][cmd] = subcmd
