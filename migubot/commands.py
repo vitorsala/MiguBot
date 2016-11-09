@@ -11,7 +11,7 @@ import discord
 @Command()
 async def help(client: discord.Client, context: discord.Message, args):
     output = '```\n'
-    for cmd in commandList:
+    for cmd in sorted(commandList):
         if cmd != 'help':
             cmdArgs = commandList[cmd][CMD_INDEXER.ARGS]
             about = commandList[cmd][CMD_INDEXER.ABOUT]
@@ -21,7 +21,7 @@ async def help(client: discord.Client, context: discord.Message, args):
                     output += ' ' + cmdArgs
                 output += ': ' + about + '\n'
             if len(commandList[cmd][CMD_INDEXER.SUBCOMMANDS]) > 0:
-                for subcmd in commandList[cmd][CMD_INDEXER.SUBCOMMANDS]:
+                for subcmd in sorted(commandList[cmd][CMD_INDEXER.SUBCOMMANDS]):
                     item = commandList[cmd][CMD_INDEXER.SUBCOMMANDS][subcmd]
                     cmdArgs = item[CMD_INDEXER.ARGS]
                     about = item[CMD_INDEXER.ABOUT]
