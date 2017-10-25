@@ -90,6 +90,7 @@ ENV/
 .ropeproject
 
 # VSCode
+.vscode/
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
