@@ -1,1 +1,1 @@
-from migubot import bot
+from migubot.Bot.bot import bot

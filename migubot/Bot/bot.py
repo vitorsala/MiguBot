@@ -23,7 +23,7 @@ assert isinstance(logger, logging.Logger)
 logger.setLevel(logging.ERROR)
 handler = logging.FileHandler(
     filename='discord.log',
-    encoding='utf-8', mode='w'
+    encoding='utf-8', mode='a'
 )
 handler.setFormatter(
     logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
@@ -56,7 +56,7 @@ async def on_message(message: discord.Message) -> None:
         await client.send_message(message.channel, str)
         return
     else:
-        heat = 0
+        heat -= 0.1
     # the end
 
     content = message.content.strip()
